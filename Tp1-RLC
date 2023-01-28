@@ -1,0 +1,86 @@
+% close all,clear all,clc
+% 
+% %Datos de constantes
+% R=4700; %4700 ohm
+% L =0.00001; %10uHy
+% C=100e-9; %100nF
+% 
+% %Matrices
+%  A = [-R/L  -1/L; 1/C 0]
+%  B =[1/L ; 0]
+%  c =[R  0]
+%  D=[0];
+%  
+%  sys=ss(A,B,c,D) %modelo de variables de estado
+%  
+% T=0.01; Kmax = 1000; At=T/Kmax ; t = 0:At:T-At;
+% u = 12*square(2*pi*500*t);  %escalon de 12 voltios
+% 
+% x0 = [0;0]; %condicion inicial
+% [y,x] = lsim(A,B,c,D,u,t,x0); %hace la simulacion
+
+
+% subplot(3,2,1);plot(t,x);title('Vc');
+% xlim([-inf 0.004]) %limites del grafico
+% ylim([-12 12])
+% 
+% subplot(3,2,2);plot(t,y);;title('Corriente');
+% xlim([-inf 0.004]) 
+% ylim([-25 25])
+% 
+% subplot(3,2,3);plot(t,u);title('Entrada,u');
+% xlim([-inf 0.004]) 
+% ylim([-15 15])
+
+% %Importo los valores de la tabla para graficarlos
+% datos=xlsread('Curvas_Medidas_RLC.xls')
+% figure
+% plot(datos(:,1),datos(:,2));%grafico corriente (1 colum es tiempo y la 2 es corriente)
+% figure
+% plot(datos(:,1),datos(:,3));%grafico tension(3er columna de la tabla) y tiempo 
+% 
+% 
+% 
+% ALGORITMO DE CHEN;
+
+% sys_G=tf(12*[T3 1],conv([T1 1],[T2 1]))
+% t_s=0:2:50;
+% [y,t0]=step(StepAmplitude*sys_G,t_s);
+% 
+% t_t1=0.0015; % es 0.0115-0.1
+% y_t1=2.4693522910614;   %valor de la tabla para t1=0.0112
+% ii=0; % for t_inic=10:15
+% ii=ii+1;
+% 
+% t_2t1=0.0020;
+% y_2t1=3.46733881642214;  %valor de la tabla para t2=0.0122
+% 
+% t_3t1=0.0025;
+% y_3t1=4.38290135558799;  %valor de la tabla para t3=0.0132
+% 
+% % K=y(end)/StepAmplitude;
+% k1=y_t1/12-1;%Afecto el valor del Escalon
+% k2=y_2t1/12-1;
+% k3=y_3t1/12-1;
+% be=4*k1^3*k3-3*k1^2*k2^2-4*k2^3+k3^2+6*k1*k2*k3;
+% alfa1=(k1*k2+k3-sqrt(be))/(2*(k1^2+k2));
+% alfa2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
+% beta=(2*k1^3+3*k1*k2+k3-sqrt(be))/(sqrt(be));
+% T1_ang=-t_t1/log(alfa1);
+% T2_ang=-t_t1/log(alfa2);
+% T3_ang=beta*(T1_ang-T2_ang)+T1_ang;
+% T1(ii)=T1_ang;
+% T2(ii)=T2_ang;
+% T3(ii)=T3_ang;
+% T3_ang=sum(T3/length(T3));
+% T2_ang=sum(T2/length(T2));
+% T1_ang=sum(T1/length(T1));
+% sys_G_ang=tf(12*[T3_ang 1],conv([T1_ang 1],[T2_ang 1]))
+% 
+% 
+% figure
+% step(sys_G_ang,'k',0.05),hold on
+% ylim([-15 15])
+% figure
+% step(StepAmplitude*sys_G_ang);
+% legend('Real','Identificada');
