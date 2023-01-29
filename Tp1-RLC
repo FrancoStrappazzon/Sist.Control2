@@ -40,7 +40,7 @@
 % plot(datos(:,1),datos(:,3));%grafico tension(3er columna de la tabla) y tiempo 
 % 
 
-Codigo de Chen
+%Codigo de Chen
 clear all; clc
 
 ii=0; % for t_inic=10:15
