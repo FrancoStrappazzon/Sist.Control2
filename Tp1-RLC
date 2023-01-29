@@ -39,48 +39,43 @@
 % figure
 % plot(datos(:,1),datos(:,3));%grafico tension(3er columna de la tabla) y tiempo 
 % 
-% 
-% 
-% ALGORITMO DE CHEN;
 
-% sys_G=tf(12*[T3 1],conv([T1 1],[T2 1]))
-% t_s=0:2:50;
-% [y,t0]=step(StepAmplitude*sys_G,t_s);
-% 
-% t_t1=0.0015; % es 0.0115-0.1
-% y_t1=2.4693522910614;   %valor de la tabla para t1=0.0112
-% ii=0; % for t_inic=10:15
-% ii=ii+1;
-% 
-% t_2t1=0.0020;
-% y_2t1=3.46733881642214;  %valor de la tabla para t2=0.0122
-% 
-% t_3t1=0.0025;
-% y_3t1=4.38290135558799;  %valor de la tabla para t3=0.0132
-% 
-% % K=y(end)/StepAmplitude;
-% k1=y_t1/12-1;%Afecto el valor del Escalon
-% k2=y_2t1/12-1;
-% k3=y_3t1/12-1;
-% be=4*k1^3*k3-3*k1^2*k2^2-4*k2^3+k3^2+6*k1*k2*k3;
-% alfa1=(k1*k2+k3-sqrt(be))/(2*(k1^2+k2));
-% alfa2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
-% beta=(2*k1^3+3*k1*k2+k3-sqrt(be))/(sqrt(be));
-% T1_ang=-t_t1/log(alfa1);
-% T2_ang=-t_t1/log(alfa2);
-% T3_ang=beta*(T1_ang-T2_ang)+T1_ang;
-% T1(ii)=T1_ang;
-% T2(ii)=T2_ang;
-% T3(ii)=T3_ang;
-% T3_ang=sum(T3/length(T3));
-% T2_ang=sum(T2/length(T2));
-% T1_ang=sum(T1/length(T1));
-% sys_G_ang=tf(12*[T3_ang 1],conv([T1_ang 1],[T2_ang 1]))
-% 
-% 
-% figure
-% step(sys_G_ang,'k',0.05),hold on
-% ylim([-15 15])
-% figure
-% step(StepAmplitude*sys_G_ang);
-% legend('Real','Identificada');
+Codigo de Chen
+clear all; clc
+
+ii=0; % for t_inic=10:15
+ii=ii+1;
+
+t1=0.002; %Es el punto 0.012 pero le resto 0.01 que es el tiempo muerto		
+y_t1=3.46733881642214;  %valor para el tiempo 0.012
+t2=0.004; 	
+y_2t2=6.60704515416013;%valor para el tiempo 0.014
+t3=0.006; 
+y_3t3=8.60264182057171;%valor para el tiempo 0.016
+
+StepAmplitude = 1;
+y_end=12;
+K=y_end/StepAmplitude;  %calculo los coeficientes
+k1=(1/StepAmplitude)*y_t1/K-1; 
+k2=(1/StepAmplitude)*y_2t2/K-1;
+k3=(1/StepAmplitude)*y_3t3/K-1;
+be=4*k1^3*k3-3*k1^2*k2^2-4*k2^3+k3^2+6*k1*k2*k3;
+alfa1=(k1*k2+k3-sqrt(be))/(2*(k1^2+k2));
+alfa2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
+beta=(k1+alfa2)/(alfa1-alfa2); 
+
+T1_ang=-t1/log(alfa1);
+T2_ang=-t1/log(alfa2);
+T3_ang=beta*(T1_ang-T2_ang)+T1_ang;
+T1(ii)=T1_ang;
+T2(ii)=T2_ang;
+T3(ii)=T3_ang;
+T3_ang=sum(T3/length(T3));
+T2_ang=sum(T2/length(T2));
+T1_ang=sum(T1/length(T1));
+sys_G_ang=tf(K,conv([T1_ang 1],[T2_ang 1]))
+%*[T3_ang 1]
+figure(1)
+step(StepAmplitude*sys_G_ang);
+ylim([0 15]);grid on;hold on;
+
