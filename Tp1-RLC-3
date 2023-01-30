@@ -1,0 +1,67 @@
+T=0.1; Kmax = 1000; At=T/Kmax ; t = 0:At:T-At;
+%creo el escalon que cambie de signo cada 1ms 
+u=zeros(1,1000);
+signo=true;
+for i=100:1:1000
+    if mod(i,500)==0
+        signo = not(signo);
+    end
+    if signo==1
+        u(1,i)=12;
+    end
+    if signo==0
+        u(1,i)=-12;
+    end
+end
+plot(t,u);
+
+
+
+%Codigo de Chen
+ii=0; % for t_inic=10:15
+ii=ii+1;
+
+t1=0.001; %Es el punto 0.012 pero le resto 0.01 que es el tiempo muerto		
+y_t1=1.42946727868189;  %valor para el tiempo 0.011
+t2=0.002; 	
+y_2t2=3.46733881642214;%valor para el tiempo 0.012
+t3=0.003; 
+y_3t3=5.20835075041297;%valor para el tiempo 0.013
+
+StepAmplitude = 1;
+y_end=12;
+K=y_end/StepAmplitude;  %calculo los coeficientes
+k1=((1/StepAmplitude)*y_t1/K)-1; 
+k2=((1/StepAmplitude)*y_2t2/K)-1;
+k3=((1/StepAmplitude)*y_3t3/K)-1;
+be=4*k1^3*k3-3*k1^2*k2^2-4*k2^3+k3^2+6*k1*k2*k3;
+alfa1=(k1*k2+k3-sqrt(be))/(2*(k1^2+k2));
+alfa2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
+beta=(2*k1^3+3*k1*k2+k3-sqrt(be))/(sqrt(be));
+
+T1_ang=-t1/log(alfa1);
+T2_ang=-t1/log(alfa2);
+T3_ang=beta*(T1_ang-T2_ang)+T1_ang;
+T1(ii)=T1_ang;
+T2(ii)=T2_ang;
+T3(ii)=T3_ang;
+T3_ang=sum(T3/length(T3));
+T2_ang=sum(T2/length(T2));
+T1_ang=sum(T1/length(T1));
+
+sys_G_ang=tf(K,conv([T1_ang 1],[T2_ang 1]))
+
+figure
+[yaprox,taprox]=lsim(sys_G_ang,u/12,t);
+plot(0.011,1.42946727868189,'x')
+hold on
+plot(0.012,3.467338816,'x')
+plot(0.013,5.20835075,'x')
+plot(taprox,yaprox);
+
+%Importo los valores de la tabla para graficarlos
+datos=xlsread('Curvas_Medidas_RLC.xls')
+figure
+plot(datos(:,1),datos(:,2));%grafico corriente (1 colum es tiempo y la 2 es corriente)
+figure
+plot(datos(:,1),datos(:,3));%grafico tension(3er columna de la tabla) y tiempo 
