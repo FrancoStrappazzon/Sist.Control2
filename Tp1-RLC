@@ -1,81 +1,49 @@
-% close all,clear all,clc
-% 
-% %Datos de constantes
-% R=4700; %4700 ohm
-% L =0.00001; %10uHy
-% C=100e-9; %100nF
-% 
-% %Matrices
-%  A = [-R/L  -1/L; 1/C 0]
-%  B =[1/L ; 0]
-%  c =[R  0]
-%  D=[0];
-%  
-%  sys=ss(A,B,c,D) %modelo de variables de estado
-%  
-% T=0.01; Kmax = 1000; At=T/Kmax ; t = 0:At:T-At;
-% u = 12*square(2*pi*500*t);  %escalon de 12 voltios
-% 
-% x0 = [0;0]; %condicion inicial
-% [y,x] = lsim(A,B,c,D,u,t,x0); %hace la simulacion
+close all,clear all,clc
 
+%Datos de constantes
+R=4700; %4700 ohm
+L =0.00001; %10uHy
+C=100e-9; %100nF
 
-% subplot(3,2,1);plot(t,x);title('Vc');
-% xlim([-inf 0.004]) %limites del grafico
-% ylim([-12 12])
-% 
-% subplot(3,2,2);plot(t,y);;title('Corriente');
-% xlim([-inf 0.004]) 
-% ylim([-25 25])
-% 
-% subplot(3,2,3);plot(t,u);title('Entrada,u');
-% xlim([-inf 0.004]) 
-% ylim([-15 15])
+%Matrices
+ A = [-R/L  -1/L; 1/C 0]
+ B =[1/L ; 0]
+ c =[R  0];
+ D=[0];
+ 
+sys=ss(A,B,c,D) %modelo de variables de estado
 
-% %Importo los valores de la tabla para graficarlos
-% datos=xlsread('Curvas_Medidas_RLC.xls')
-% figure
-% plot(datos(:,1),datos(:,2));%grafico corriente (1 colum es tiempo y la 2 es corriente)
-% figure
-% plot(datos(:,1),datos(:,3));%grafico tension(3er columna de la tabla) y tiempo 
-% 
+T=0.1; Kmax = 1000; At=T/Kmax ; t = 0:At:T-At;
+%creo el escalon que cambie de signo cada 1ms 
+u=zeros(1,1000);
+signo=true;
+for i=100:1:1000
+    if mod(i,500)==0
+        signo = not(signo);
+    end
+    if signo==1
+        u(1,i)=12;
+    end
+    if signo==0
+        u(1,i)=-12;
+    end
+end
+plot(t,u);
 
-%Codigo de Chen
-clear all; clc
+[y,x]=lsim(A,B,c,D,u,t); %hace la simulacion
 
-ii=0; % for t_inic=10:15
-ii=ii+1;
+figure(2)
+plot(t,x);title('Vc');
+xlim([-inf 0.1]) %limites del grafico
+ylim([-15 15])
 
-t1=0.002; %Es el punto 0.012 pero le resto 0.01 que es el tiempo muerto		
-y_t1=3.46733881642214;  %valor para el tiempo 0.012
-t2=0.004; 	
-y_2t2=6.60704515416013;%valor para el tiempo 0.014
-t3=0.006; 
-y_3t3=8.60264182057171;%valor para el tiempo 0.016
+figure(3)
+plot(t,y);title('Corriente');
+xlim([-inf 0.1]) 
+ylim([-15 15])
 
-StepAmplitude = 1;
-y_end=12;
-K=y_end/StepAmplitude;  %calculo los coeficientes
-k1=(1/StepAmplitude)*y_t1/K-1; 
-k2=(1/StepAmplitude)*y_2t2/K-1;
-k3=(1/StepAmplitude)*y_3t3/K-1;
-be=4*k1^3*k3-3*k1^2*k2^2-4*k2^3+k3^2+6*k1*k2*k3;
-alfa1=(k1*k2+k3-sqrt(be))/(2*(k1^2+k2));
-alfa2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
-beta=(k1+alfa2)/(alfa1-alfa2); 
-
-T1_ang=-t1/log(alfa1);
-T2_ang=-t1/log(alfa2);
-T3_ang=beta*(T1_ang-T2_ang)+T1_ang;
-T1(ii)=T1_ang;
-T2(ii)=T2_ang;
-T3(ii)=T3_ang;
-T3_ang=sum(T3/length(T3));
-T2_ang=sum(T2/length(T2));
-T1_ang=sum(T1/length(T1));
-sys_G_ang=tf(K,conv([T1_ang 1],[T2_ang 1]))
-%*[T3_ang 1]
-figure(1)
-step(StepAmplitude*sys_G_ang);
-ylim([0 15]);grid on;hold on;
+figure(4)
+plot(t,u);title('Entrada,u');
+xlim([-inf 0.1]) 
+ylim([-15 15])
 
