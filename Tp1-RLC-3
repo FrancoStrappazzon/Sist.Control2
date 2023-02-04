@@ -15,7 +15,12 @@ for i=100:1:1000
 end
 plot(t,u);
 
-
+%Importo los valores de la tabla para graficarlos
+datos=xlsread('Curvas_Medidas_RLC.xls')
+figure
+plot(datos(:,1),datos(:,2));%grafico corriente (1 colum es tiempo y la 2 es corriente)
+figure
+plot(datos(:,1),datos(:,3));%grafico tension(3er columna de la tabla) y tiempo 
 
 %Codigo de Chen
 ii=0; % for t_inic=10:15
@@ -60,9 +65,4 @@ plot(0.012,3.467338816,'x')
 plot(0.013,5.20835075,'x')
 plot(taprox,yaprox);
 
-%Importo los valores de la tabla para graficarlos
-datos=xlsread('Curvas_Medidas_RLC.xls')
-figure
-plot(datos(:,1),datos(:,2));%grafico corriente (1 colum es tiempo y la 2 es corriente)
-figure
-plot(datos(:,1),datos(:,3));%grafico tension(3er columna de la tabla) y tiempo 
+
