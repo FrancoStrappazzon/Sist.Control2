@@ -53,6 +53,7 @@ sys_G_ang=tf(K,conv([T1_ang 1],[T2_ang 1]))
 
 figure
 [yaprox,taprox]=lsim(sys_G_ang,u/12,t);
+plot(datos(:,1),datos(:,3),'b');title('Vc');hold on
 plot(0.011,1.42946727868189,'x')
 hold on
 plot(0.012,3.467338816,'x')
