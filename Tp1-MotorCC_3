@@ -1,0 +1,53 @@
+close all, clear all, clc
+
+T=0.1; Kmax = 1000; At=T/Kmax ; t = 0:At:T-At;
+u=zeros(1,1000);
+for i=1:1:1000
+        u(1,i)=12;
+end
+figure
+plot(t,u);
+%Importo los valores de la tabla para graficarlos
+datos=xlsread('Curvas_Medidas_Motor.xls')
+figure
+plot(datos(:,1),datos(:,2));title('wr');hold on;%grafico wr (1 colum es tiempo y la 2 es wr)
+figure
+plot(datos(:,1),datos(:,3));title('ia');hold on;%grafico corriente(3er columna de la tabla) y tiempo
+
+
+%Codigo de Chen
+ii=0; % for t_inic=10:15
+ii=ii+1;
+%selecciono los 3 puntos del grafico
+t1=0.0200999999999999; 		
+y_t1=11,7492467066065;  
+t2=0,02498999999999975; 	
+y_2t1=198,247642536445;
+t3=0,0299999999999995; 
+y_3t1=198,248802241447;
+
+StepAmplitude = 1;
+y_end=12;
+K=y_end/StepAmplitude;  %calculo los coeficientes
+k1=((1/StepAmplitude)*y_t1/K)-1; 
+k2=((1/StepAmplitude)*y_2t1/K)-1;
+k3=((1/StepAmplitude)*y_3t1/K)-1;
+be=4*k1^3*k3-3*k1^2*k2^2-4*k2^3+k3^2+6*k1*k2*k3;
+alfa1=(k1*k2+k3-sqrt(be))/(2*(k1^2+k2));
+alfa2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
+beta=(2*k1^3+3*k1*k2+k3-sqrt(be))/(sqrt(be));
+
+T1_ang=-t1/log(alfa1);
+T2_ang=-t1/log(alfa2);
+T3_ang=beta*(T1_ang-T2_ang)+T1_ang;
+T1(ii)=T1_ang;
+T2(ii)=T2_ang;
+T3(ii)=T3_ang;
+T3_ang=sum(T3/length(T3));
+T2_ang=sum(T2/length(T2));
+T1_ang=sum(T1/length(T1));
+
+sys_G_ang=tf(K,conv([T1_ang 1],[T2_ang 1]))
+
+figure
+[yaprox,taprox]=lsim(sys_G_ang,u/12,t);
