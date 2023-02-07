@@ -1,8 +1,8 @@
 close all, clear all, clc
 
-T=0.1; Kmax = 10000; At=T/Kmax ; t = 0:At:T-At;
+T=0.6; Kmax = 10000; At=T/Kmax ; t = 0:At:T-At;
 u=zeros(1,10000);
-for i=2000:1:10000
+for i=340:1:10000
         u(1,i)=12;
 end
 figure
@@ -15,69 +15,79 @@ figure
 plot(datos(:,1),datos(:,3));title('ia');hold on;%grafico corriente(3er columna de la tabla) y tiempo
 
 
-%Algoritmo de Chen para la primer parte de la curva
-% ii=0; % for t_inic=10:15
-% ii=ii+1;
-% %selecciono los 3 puntos del grafico
-% t1=0.0000999999999999;%al tiempo le resto 0.02 que es la zona muerta 		
-% y_t1=11.7492467066065; %valor para el t=0,0200999999999999
-% t2=0.0010899999999999; 	
-% y_2t1=179.17097017191;%valor para el t=0,0210299999999999
-% t3=0.0020199999999998; 
-% y_3t1=196.564251292916;%valor para el t=0,0221099999999998
-% 
-% StepAmplitude = 1;
-% y_end=198,24879822047;
-% K=y_end/StepAmplitude;  %calculo los coeficientes
-% k1=((1/StepAmplitude)*y_t1/K)-1; 
-% k2=((1/StepAmplitude)*y_2t1/K)-1;
-% k3=((1/StepAmplitude)*y_3t1/K)-1;
-% be=4*k1^3*k3-3*k1^2*k2^2-4*k2^3+k3^2+6*k1*k2*k3;
-% alfa1=(k1*k2+k3-sqrt(be))/(2*(k1^2+k2));
-% alfa2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
-% beta=(2*k1^3+3*k1*k2+k3-sqrt(be))/(sqrt(be));
-% 
-% T1_ang=-t1/log(alfa1);
-% T2_ang=-t1/log(alfa2);
-% T3_ang=beta*(T1_ang-T2_ang)+T1_ang;
-% T1(ii)=T1_ang;
-% T2(ii)=T2_ang;
-% T3(ii)=T3_ang;
-% T3_ang=sum(T3/length(T3));
-% T2_ang=sum(T2/length(T2));
-% T1_ang=sum(T1/length(T1));
-% 
-% sys_G_ang=tf(K,conv([T1_ang 1],[T2_ang 1]))
-% 
-% figure
-% [yaprox,taprox]=lsim(sys_G_ang,u/12,t);
-% % plot(datos(:,1),datos(:,3),'b');title('Vc');hold on
-% % plot(0.0200999999999999,11.7492467066065,'x')
-% % hold on
-% % plot(0.0210899999999999,179.17097017191,'x')
-% % plot(0.0220199999999998,196.564251292916,'x')
-% plot(taprox,yaprox);title('wr Chen');
+% Algoritmo de Chen para la primer parte de la curva
+ii=0; % for t_inic=10:15
+ii=ii+1;
+%selecciono los 3 puntos del grafico
+t1=0.0000999999999999;%al tiempo le resto 0.02 que es la zona muerta 		
+y_t1=11.7492467066065; %valor para el t=0,0200999999999999
+t2=0.0010899999999999; 	
+y_2t1=179.17097017191;%valor para el t=0,0210299999999999
+t3=0.0020199999999998; 
+y_3t1=196.564251292916;%valor para el t=0,0221099999999998
+
+StepAmplitude = 1;
+y_end=198,24879822047;
+K=y_end/StepAmplitude;  %calculo los coeficientes
+k1=((1/StepAmplitude)*y_t1/K)-1; 
+k2=((1/StepAmplitude)*y_2t1/K)-1;
+k3=((1/StepAmplitude)*y_3t1/K)-1;
+be=4*k1^3*k3-3*k1^2*k2^2-4*k2^3+k3^2+6*k1*k2*k3;
+alfa1=(k1*k2+k3-sqrt(be))/(2*(k1^2+k2));
+alfa2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
+beta=(2*k1^3+3*k1*k2+k3-sqrt(be))/(sqrt(be));
+
+T1_ang=-0.0000999/log(alfa1);
+T2_ang=-0.0000999/log(alfa2);
+T3_ang=beta*(T1_ang-T2_ang)+T1_ang;
+T1(ii)=T1_ang;
+T2(ii)=T2_ang;
+T3(ii)=T3_ang;
+T3_ang=sum(T3/length(T3));
+T2_ang=sum(T2/length(T2));
+T1_ang=sum(T1/length(T1));
+
+sys_G_ang=tf(K,conv([T1_ang 1],[T2_ang 1]))
+
+figure
+[yaprox,taprox]=lsim(sys_G_ang,u/12,t);
+% plot(datos(:,1),datos(:,3),'b');title('Vc');hold on
+% plot(0.0200999999999999,11.7492467066065,'x')
+% hold on
+% plot(0.0210899999999999,179.17097017191,'x')
+% plot(0.0220199999999998,196.564251292916,'x')
+plot(taprox,yaprox);title('wr Chen');
+
+
+%Con el Torque
+T=0.6; Kmax = 10000; At=T/Kmax ; t = 0:At:T-At;
+u=zeros(1,10000);
+for i=1660:1:10000
+        u(1,i)=12;
+end
+figure
+plot(t,u);title('u2')
 
 %Algoritmo de Chen para la parte con el torque 
 ii=0; % for t_inic=10:15
 ii=ii+1;
-%selecciono los 3 puntos del grafico
-t1_2= 		
-y_t1_2=
-t2_2=; 	
-y_2t1_2=;
-t3_2=; 
-y_3t1_2=
+%selecciono los 3 puntos del grafico, le resto 0.1 que es donde baja la curva
+t1_2=0.000020000000005;	%es el tiempo 0.100020000000005
+y_t1_2=198.248802246763;
+t2_2=0.002000000000005; %es el tiempo 0.102000000000005
+y_2t1_2=46.5454034010167;
+t3_2=0.004010000000005; %es el tiempo 0.104010000000005
+y_3t1_2=45.4071219730381;
 
 StepAmplitude = 1;
-y_end2=(198,24879822047-46);%el valor es la resta del yend1-yend2
-K2=y_end/StepAmplitude;  %calculo los coeficientes
-k1_2=((1/StepAmplitude)*y_t1_2/K_2)-1; 
-k2_2=((1/StepAmplitude)*y_2t1_2/K_2)-1;
-k3_2=((1/StepAmplitude)*y_3t1_2/K_2)-1;
+y_end2=(46-198.248802246763);%el valor es la resta del yend1-yend2
+K2=y_end2/StepAmplitude;  %calculo los coeficientes
+k1_2=((1/StepAmplitude)*y_t1_2/K2)-1; 
+k2_2=((1/StepAmplitude)*y_2t1_2/K2)-1;
+k3_2=((1/StepAmplitude)*y_3t1_2/K2)-1;
 be_2=4*k1_2^3*k3_2-3*k1_2^2*k2_2^2-4*k2_2^3+k3_2^2+6*k1_2*k2_2*k3_2;
 alfa1_2=(k1_2*k2_2+k3_2-sqrt(be_2))/(2*(k1_2^2+k2_2));
-alfa2_2=(k1*k2+k3+sqrt(be))/(2*(k1^2+k2));
+alfa2_2=(k1_2*k2_2+k3_2+sqrt(be_2))/(2*(k1_2^2+k2_2));
 beta_2=(2*k1_2^3+3*k1_2*k2_2+k3_2-sqrt(be_2))/(sqrt(be_2));
 
 T1_ang_2=-t1_2/log(alfa1_2);
@@ -93,10 +103,18 @@ T1_ang_2=sum(T1_2/length(T1_2));
 sys_G_ang2=tf(K2,conv([T1_ang_2 1],[T2_ang_2 1]))
 
 figure
-[yaprox2,taprox2]=lsim(sys_G_ang_2,u/12,t);
+[yaprox2,taprox2]=lsim(sys_G_ang2,u/12,t);
 % plot(datos(:,1),datos(:,3),'b');title('Vc');hold on
 % plot(0.0200999999999999,11.7492467066065,'x')
 % hold on
 % plot(0.0210899999999999,179.17097017191,'x')
 % plot(0.0220199999999998,196.564251292916,'x')
 plot(taprox2,yaprox2);title('wr Chen con Torque');
+xlim([0 0.7]);
+ylim([-200 0]);
+
+%sumo las 2 para obtener la curva completa
+figure
+Gaprox=yaprox2+yaprox;
+plot(taprox,Gaprox,'r');title('Chen vs curva real');hold on;
+plot(datos(:,1),datos(:,2),'b');hold on;%grafico wr
