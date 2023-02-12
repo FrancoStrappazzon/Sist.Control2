@@ -8,13 +8,13 @@ c=100; %m/seg
 delta_t=1e-3;
 ts=70;
 u=0;
-h0=-500;%condicion inicial
+
 ref= 100;%referencia
 
 alpha_0=0;
 fi_0=0;
 fip_0=0;
-h_0=0;
+h_0=-500;%altura inicial
 
 t=0:delta_t:(ts-delta_t);
 val=zeros(4,ts/delta_t);
@@ -37,7 +37,7 @@ Mat_Ma=[Mat_Ba Mat_Aa*Mat_Ba Mat_Aa^2*Mat_Ba Mat_Aa^3*Mat_Ba Mat_Aa^4*Mat_Ba];%M
 %Cálculo del controlador por asignación de polos
 auto_val=eig(Mat_Aa);
 c_ai=conv(conv(conv(conv([1 -auto_val(1)],[1 -auto_val(2)]),[1 -auto_val(3)]),[1 -auto_val(4)]),[1 -auto_val(5)]);
-Mat_Wa=[c_ai(5) c_ai(4) c_ai(3) c_ai(2) 1;c_ai(4) c_ai(3) c_ai(2) 1 0;c_ai(3) c_ai(2) 1 0 0;c_ai(2) 1 0 0 0;1 0 0 0 0];
+Mat_Wa=[;c_ai(5) c_ai(4) c_ai(3) c_ai(2) 1;c_ai(4) c_ai(3) c_ai(2) 1 0;c_ai(3) c_ai(2) 1 0 0;c_ai(2) 1 0 0 0;1 0 0 0 0];
 Mat_Ta=Mat_Ma*Mat_Wa;
 A_controlable=inv(Mat_Ta)*Mat_Aa*Mat_Ta; %Verificación de que T esté bien
 
@@ -62,7 +62,7 @@ for i=2:1:(ts/delta_t-1)
     val(4,i)=val(4,i-1)+delta_t*(c*val(1,i-1));
 end
 figure
-plot(t,val(4,:)+h0);title('Altura,h');
+plot(t,val(4,:));title('Altura,h');
 ylim([-500 100]);
 figure
 plot(t,val(1,:));title('Alpha')
