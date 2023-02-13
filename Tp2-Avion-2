@@ -1,0 +1,130 @@
+%CON OBSERVADOR- No anda bien 
+clear all;close all;clc
+%Constantes
+w=3;
+a=0.05;
+b=5;
+c=100; %m/seg
+delta_t=1e-3;
+ts=70;
+u=0;
+
+ref= -100;%referencia
+color='r';
+%variables
+alpha_0=0;
+fi_0=0;
+fip_0=0;
+alpha_0_o=0;%variables observadas
+fi_0_o=0;
+fip_0_o=0;
+h_0=500;%altura inicial
+
+t=0:delta_t:(ts-delta_t);
+val=zeros(4,ts/delta_t);
+val(1,1)=alpha_0;
+val(2,1)=fi_0;
+val(3,1)=fip_0;
+val(4,1)=h_0;
+
+%Cuando tengo el observador
+val_o=zeros(4,ts/delta_t);
+val_o(1,1)=alpha_0;
+val_o(2,1)=fi_0;
+val_o(3,1)=fip_0;
+val_o(4,1)=h_0;
+
+%matrices
+Mat_A=[-a a 0 0 ; 0 0 1 0; w^2 -(w^2) 0 0; c 0 0 0];
+Mat_B=[0;0;b*w^2;0];
+Mat_C=[0 0 0 1];
+MAT_D=0;
+[n,d]=ss2tf(Mat_A,Mat_B,Mat_C,MAT_D)
+Mat_M=[Mat_B Mat_A*Mat_B Mat_A^2*Mat_B Mat_A^3*Mat_B ];%Matriz Controlabilidad
+%Cálculo del controlador por asignación de polos
+auto_val=eig(Mat_A);
+c_ai=conv(conv(conv([1 -auto_val(1)],[1 -auto_val(2)]),[1 -auto_val(3)]),[1 -auto_val(4)]);
+Mat_W=[c_ai(4) c_ai(3) c_ai(2) 1;c_ai(3) c_ai(2) 1 0;c_ai(2) 1 0 0;1 0 0 0];
+Mat_T=Mat_M*Mat_W;
+A_controlable=inv(Mat_T)*Mat_A*Mat_T %Verificación de que T esté bien
+
+% Construcción del sistema ampliado
+Mat_Aa=[Mat_A zeros(4,1);-Mat_C 0];
+Mat_Ba=[Mat_B;0];
+Mat_Ma=[Mat_Ba Mat_Aa*Mat_Ba Mat_Aa^2*Mat_Ba Mat_Aa^3*Mat_Ba Mat_Aa^4*Mat_Ba];%Matriz de Controlabilidad Ampliada
+
+%Cálculo del controlador por asignación de polos
+auto_val=eig(Mat_Aa);
+c_ai=conv(conv(conv(conv([1 -auto_val(1)],[1 -auto_val(2)]),[1 -auto_val(3)]),[1 -auto_val(4)]),[1 -auto_val(5)]);
+Mat_Wa=[;c_ai(5) c_ai(4) c_ai(3) c_ai(2) 1;c_ai(4) c_ai(3) c_ai(2) 1 0;c_ai(3) c_ai(2) 1 0 0;c_ai(2) 1 0 0 0;1 0 0 0 0];
+Mat_Ta=Mat_Ma*Mat_Wa;
+A_controlable=inv(Mat_Ta)*Mat_Aa*Mat_Ta; %Verificación de que T esté bien
+
+%Ubicación de los polos de lazo cerrado en mui:
+mui(1)=-15+15i; mui(2)=-15-15i; mui(3)=-0.5+0.5i ;mui(4)=-0.5-0.5i;mui(5)=-1;%este ultimo polo es el integrador
+alfa_ia=conv(conv(conv(conv([1 -mui(3)],[1 -mui(4)]),[1 -mui(2)]),[1 -mui(1)]),[1 -mui(5)]);
+Ka=(alfa_ia(2:6)-c_ai(2:6))*inv(Mat_Ta);
+eig(Mat_Aa-Mat_Ba*Ka);
+K=Ka(1:4); KI=-Ka(5); %Los valores del controlador de obtienen del K ampliado
+
+%Implemento el OBSERVADOR
+Mat_A_O=Mat_A';
+Mat_B_O=Mat_C';
+Mat_M_Dual=[Mat_B_O Mat_A_O*Mat_B_O Mat_A_O^2*Mat_B_O Mat_A_O^3*Mat_B_O];%Matriz Controlabilidad
+
+% Ubicación del Observador dado por consigna
+mui_o(1)=-50; mui_o(2)=-30; mui_o(3)=-1+i ;mui_o(4)=-1-i;%mui_o(5)=-1;%este ultimo polo es el integrador
+mui_o=real(mui_o);
+alfaO_i=conv(conv(conv([1 -mui_o(3)],[1 -mui_o(4)]),[1 -mui_o(2)]),[1 -mui_o(1)]);
+Mat_T_O=Mat_M_Dual*Mat_W;
+Ko=(fliplr(alfaO_i(2:end)-c_ai(2:end-1))*inv(Mat_T_O))';
+eig(Mat_A_O'-Ko*Mat_C) %Verifico que todos los polos estén en el semiplano izquierdo
+
+x_hat=[0;0;0;0]; %Inicializo el Observador
+psi(1)=0;
+
+for i=2:1:(ts/delta_t-1)
+    estado=[val(1,i-1); val(2,i-1); val(3,i-1); val(4,i-1)];
+    psi_p=ref-Mat_C*estado;
+    psi(i)=psi(i-1)+psi_p*delta_t;
+    
+    uo(i-1)=-Ko'*x_hat+KI*psi(i);%con observador
+    u(i-1)=-K*estado+KI*psi(i);%sin observador
+
+    val(1,i)=val(1,i-1)+delta_t*(a*val(2,i-1)-a*val(1,i-1));
+    val(2,i)=val(2,i-1)+delta_t*(val(3,i-1));
+    val(3,i)=val(3,i-1)+delta_t*(-w^2*(val(2,i-1)-val(1,i-1)-b*u(i-1)));
+    val(4,i)=val(4,i-1)+delta_t*(c*val(1,i-1));
+    %planteo las ecuaciones para el observador
+    val_o(1,i)=val_o(1,i-1)+delta_t*(a*val_o(2,i-1)-a*val_o(1,i-1));
+    val_o(2,i)=val_o(2,i-1)+delta_t*(val_o(3,i-1));
+    val_o(3,i)=val_o(3,i-1)+delta_t*(-w^2*(val_o(2,i-1)-val_o(1,i-1)-b*uo(i-1)));
+    val_o(4,i)=val_o(4,i-1)+delta_t*(c*val_o(1,i-1));
+    %________OBSERVADOR__________
+    y_sal_O(i-1)=Mat_C*x_hat;
+    y_sal(i-1)=Mat_C*estado;
+    x_hatp=Mat_A*x_hat+Mat_B*u(i-1)+Ko*(y_sal(i-1)-y_sal_O(i-1));
+    x_hat=x_hat+delta_t*x_hatp;
+end
+figure
+plot(t,val(4,:),'r');grid on;title('Altura,h');hold on;
+plot(t,val_o(4,:),'g');grid on;hold on;
+
+figure
+plot(t,val(1,:),'r');grid on;title('Alpha');hold on;
+plot(t,val_o(1,:),'g');grid on;hold on;
+figure
+plot(t,val(2,:),'r');grid on;title('phi');hold on;
+plot(t,val_o(2,:),'g');grid on;hold on;
+% figure(1);hold on; t=0:delta_t:(ts-delta_t);
+% subplot(2,2,1);plot(t,val(4,:),color);grid on; title('Altura h');hold on;
+% legend('Sin Observador','Con Observador');legend('boxoff');
+% subplot(2,2,2);plot(t,val(1,:),color);grid on;title('Ángulo Alpha');hold on;
+% subplot(2,2,3); plot(t,val(2,:),color);grid on;title('Angulo Phi');hold on;
+% 
+% subplot(2,2,4);plot(t,u(i-1),color);grid on;title('Acción de control');xlabel('Tiempo en Seg.');hold on;
+% figure(2);hold on;
+% subplot(2,2,1);plot(alfa,omega,color);grid on;xlabel('Ángulo');ylabel('Velocidad 
+% angular');hold on;
+% subplot(2,2,2);plot(p,p_p,color);grid on;xlabel('Posicion carro');ylabel('Velocidad 
+% carro');hold on;legend('Sin Observador','Con Observador');legend('boxoff');
