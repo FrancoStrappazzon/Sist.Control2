@@ -1,5 +1,5 @@
-%ANDA BIEN
-clc;clear all;
+%HECHO CON ASIGNACION DE POLOS
+clear all;clear all;clc
 %variables
 m=.1;Fricc=0.1; long=0.6;g=9.8;M=.5;
 h=0.001;tiempo=(50/h);delta_pp=0;phi_pp=0; t=0:h:tiempo*h;
@@ -9,12 +9,12 @@ delta_p=0:h:tiempo*h; u=linspace(0,0,tiempo+1);
 phi(1)=pi; color='r';
 ref=10;
 phi_p(1)=0; delta_p(1)=0; u(1)=0; delta(1)=0; i=1;indice=0;
-
+xop=[0; 0; pi; 0];
 %Versión linealizada en el equilibrio estable. 
 
 Mat_A=[0 1 0 0;0 -Fricc/M -m*g/M 0; 0 0 0 1; 0 -Fricc/(long*M) -g*(m+M)/(long*M) 0]
 Mat_B=[0; 1/M; 0; 1/(long*M)]
-Mat_C=[1 0 0 0]; %La salida es posición y ángulo
+Mat_C=[1 0 0 0]; %La salida es posición 
 
 % Construcción del sistema ampliado
 Mat_Aa=[Mat_A zeros(4,1);-Mat_C 0];
@@ -32,15 +32,15 @@ A_controlable=inv(Mat_Ta)*Mat_Aa*Mat_Ta; %Verificación de que T esté bien
 mui(1)=-.18;mui(2)=-.55; mui(3)=-7 + 0.3i;mui(4)=conj(mui(3));mui(5)=-1;
 alfa_ia=conv(conv(conv(conv([1 -mui(3)],[1 -mui(4)]),[1 -mui(2)]),[1 -mui(1)]),[1 -mui(5)]);
 Ka=(alfa_ia(2:6)-c_ai(2:6))*inv(Mat_Ta);
-eig(Mat_Aa-Mat_Ba*Ka)
+eig(Mat_Aa-Mat_Ba*Ka);
 K=Ka(1:4); KI=-Ka(5); %Los valores del controlador de obtienen del K ampliado
 psi(1)=0;
 
 while(i<(tiempo+1))
  estado=[delta(i); delta_p(i); phi(i); phi_p(i)];
- psi_p=ref-Mat_C* estado;
+ psi_p=ref-Mat_C* (estado-xop);
  psi(i+1)=psi(i)+psi_p*h;
- u(i)=-K*estado+KI*psi(i+1);
+ u(i)=-K*(estado-xop)+KI*psi(i+1);
  %cambio la masa y la referencia a 0 a lamitad del tiempo, asumo que delta ya vale 10 en ese momento
  if(i==25/h)
      m=10*m;
