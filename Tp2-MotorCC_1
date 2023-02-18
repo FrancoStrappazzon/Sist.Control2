@@ -1,100 +1,96 @@
-%MOTOR CC - EL QUE ANDA MASOMENOS
-clear all;close all;
-X=-[0; 0; 0];ii=0;t_etapa=1e-5;tF=1;
+%motor CC - ANDA BIEN 
+clear all ,close all,clc
 
-Ts=t_etapa;
-% %Variables
+%variables
 Laa=366e-6; J=5e-9;Ra=55.6;B=0;Ki=6.49e-3;Km=6.53e-3;
 
-%referencias
-ref1=1.57;
-ref2=-1.57;
+%Torque
+Tl=1.15e-3;%va a ir variando para pi/2 y -pi/2
+
 %Matrices
-A=[-Ra/Laa 0 -Km/Laa; 0 0 1;Ki/J 0 -B/J];
-B=[1/Laa;0;0];
-C=[0 1 0];
-D=[0];
+Mat_A=[-Ra/Laa -Km/Laa 0;Ki/J -B/J 0 ;0 1 0 ];
+Mat_B=[1/Laa;0;0];
+Mat_C=[0 0 1]; %x1=ia   x2=wr   x3=theta
+Mat_D=[0];
 
-sys=ss(A,B,C,D);
-tf=tf(sys);
-%Verifico Controlabilidad 
-M=[B A*B A^2*B];%Matriz Controlabilidad 
-rango_M=rank(M); 
+%Matrices ampliadas
+Mat_Aa=[Mat_A zeros(3,1); -Mat_C 0];
+Mat_Ba=[Mat_B; 0];
+Mat_Cc=[Mat_C 0];
 
+%Diseño del controlador por LQR
+Q=diag([1 1/10000 100 1000000]);R=0.1; %Si achico R tiende a ser mas rapida la respuesta, o tambien voy aumentando Q
 
-%Cálculo del controlador por asignación de polos
-auto_val=eig(A);  
-c_ai=conv(conv([1 -auto_val(1)],[1 -auto_val(2)]),[1 -auto_val(3)]);
-W=[c_ai(3) c_ai(2) 1;c_ai(2) 1 0;1 0 0 ]; 
-T=M*W;             
-A_controlable=inv(T)*A*T %Verificación de que T esté bien
-
-%CONTROLADOR Ubicación de los polos de lazo cerrado en mui :
-mui(1)=-3000;mui(2)=-500; mui(3)=-1000;
-alfa_i=conv(conv([1 -mui(3)],[1 -mui(2)]),[1 -mui(1)]);
-K=(alfa_i(2:4)-c_ai(2:4))*inv(T);
-Gj=-inv(C*inv(A-B*K)*B);
-
-eig(A-B*K);%Verifico que todos los polos estén en el semiplano izquierdo
-
-
-u=12;Tl=0;
-for t=0:t_etapa:tF
- ii=ii+1;k=ii+2;
- Tl=(1e-3/2)+(1e-3/2)*square(2*pi*t/0.6);
- %  Tl_arreglo=[0 ((1.15e-3/2)*sign(sin(10.472*t))+(1.15e-3/2))];
- %  Tl=Tl_arreglo(2);
- U = [u Tl];
- X=modmotor(t_etapa, X, U);
- 
- %   Cambio la referencia segun el angulo deseado
- if(Tl==1e-3)
-     u=-K*X'+Gj*ref1;
- else
-     u=-K*X'+Gj*ref2;
+%Construcción del Hamiltoniano para el cálculo del controlador
+Ha=[Mat_Aa -Mat_Ba*inv(R)*Mat_Ba'; -Q -Mat_Aa'];
+[n,va]=size(Ha);
+[V,D]=eig(Ha);MX1X2=[];
+for ii=1:n
+ if real(D(ii,ii))<0
+ MX1X2=[MX1X2 V(:,ii)];
  end
+end
+MX1=MX1X2(1:n/2,:); MX2=MX1X2(n/2+1:end,:);
 
- x1(ii)=X(1);%ia
- x2(ii)=X(2);%tita
- x3(ii)=X(3);%w
- torque(ii)=Tl;%Torque Tl
- acc(ii)=u;
+P=real(MX2*inv(MX1));%tomo la parte real por un tema de residuos
+Ka=inv(R)*Mat_Ba'*P;
+K=Ka(1:3); KI=Ka(4);
+eig(Mat_Aa-Mat_Ba*Ka);%verifico polos con parte real negativa
+
+%Fin cálculo del controlador-
+J_(1)=0; V_(1)=0; 
+psi(1)=0;
+
+%para la simulacion
+delta_t=1e-5;
+tiempo=1;
+pasos=round(tiempo/delta_t);
+Ci=[0 0 0 0];
+t=0:delta_t:(tiempo-delta_t);
+
+%referencia
+ref=(pi/2)*square(2*pi*t/0.6);
+
+%Torque
+Tll=(Tl/2)+(Tl/2)*square(2*pi*t/0.6);%funcion para ir variando el torque 
+% Tl=(1.15e-3/2)+(1.15e-3/2)*square(2*pi*t/0.6);
+
+%condiciones iniciales
+x=zeros(4,pasos);
+x(1,1)=Ci(1);%ia
+x(2,1)=Ci(2);%w
+x(3,1)=Ci(3);%theta
+x(3,1)=Ci(4);
+ua(1)=0;
+
+for i=2:1:pasos
+    estado=[x(1,i-1);x(2,i-1);x(3,i-1);x(4,i-1)];%guardo el estado
+    integracion=x(4,i-1)+delta_t*(ref(1,i-1)-Mat_Cc*estado);
+    u_actual=-K*estado(1:3)-integracion*KI;
+    ua=[ua u_actual];
+    
+    %ecuaciones del motor
+    x1_p=(-Ra/Laa)*estado(1)-(Km/Laa)*estado(2)+(1/Laa)*u_actual;
+    x2_p=(Ki/J)*estado(1)-(B/J)*estado(2)-(1/J)*Tll(i-1);
+    x3_p=estado(2);
+    
+    xp_actual=[x1_p; x2_p; x3_p];
+    
+    xsig=estado(1:3)+delta_t*xp_actual;
+    x(1,i)=xsig(1);
+    x(2,i)=xsig(2);
+    x(3,i)=xsig(3);
+    x(4,i)=integracion;
 end
 
-%Grafico
-t=0:t_etapa:tF;
-figure;
-subplot(3,1,1);hold on;
-plot(t,x1,'r');title('Ia');xlabel('Tiempo [Seg.]');
-subplot(3,1,2);hold on;
-plot(t,x2,'r');title('Tita');xlabel('Tiempo [Seg.]');
-subplot(3,1,3);hold on;
-plot(t,x3,'r');title('w');xlabel('Tiempo [Seg.]');
-
-figure;
-subplot(2,1,1);hold on;
-plot(t,torque,'r');title('Torque de carga');
-xlabel('Tiempo [Seg.]');
-subplot(2,1,2);hold on;
-plot(t,acc,'r');title('Accion de control');
-xlabel('Tiempo [Seg.]');
-
-%Modelo del motor
-function [X]=modmotor(t_etapa, xant, accion)
-Laa=366e-6; J=5e-9;Ra=55.6;B=0;Ki=6.49e-3;Km=6.53e-3;
-Va=accion(1);
-h=t_etapa;
-Tl=accion(2);
-ia = xant(1);
-tita= xant(2);
-w= xant(3);
-
-%Ecuaciones
- wp=(Ki/J)*ia-(B/J)*w-(1/J)*Tl;
- w=w+h*wp;
- tita=tita+h*w;
- iap=(-Ra/Laa)*ia-(Km/Laa)*w+(1/Laa)*Va;
- ia = ia + h*iap;   
-
-X=[ia,tita,w];
-end
+figure
+plot(t,x(3,:));title('Angulo Theta y referencia');hold on;
+plot(t,ref);
+figure
+plot(t,x(2,:));title('Velocidad angular, w');hold on
+figure
+plot(t,x(1,:));title('Corriente Ia');hold on;
+figure
+plot(t,ua);title('Accion de control');hold on;
+figure
+plot(t,Tll);title('Torque');hold on;
