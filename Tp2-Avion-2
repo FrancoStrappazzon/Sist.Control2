@@ -1,5 +1,5 @@
-%CON OBSERVADOR- No anda bien 
-clear all;close all;clc
+%CON OBSERVADOR- Si anda
+clc
 %Constantes
 w=3;
 a=0.05;
@@ -26,13 +26,13 @@ val(1,1)=alpha_0;
 val(2,1)=fi_0;
 val(3,1)=fip_0;
 val(4,1)=h_0;
-
+xop=[0;0;0;h_0];
 %Cuando tengo el observador
 val_o=zeros(4,ts/delta_t);
 val_o(1,1)=alpha_0;
 val_o(2,1)=fi_0;
 val_o(3,1)=fip_0;
-val_o(4,1)=h_0;
+val_o(4,1)=0;%con el observador arranca en 0 CREO
 
 %matrices
 Mat_A=[-a a 0 0 ; 0 0 1 0; w^2 -(w^2) 0 0; c 0 0 0];
@@ -61,9 +61,9 @@ Mat_Ta=Mat_Ma*Mat_Wa;
 A_controlable=inv(Mat_Ta)*Mat_Aa*Mat_Ta; %Verificación de que T esté bien
 
 %Ubicación de los polos de lazo cerrado en mui:
-mui(1)=-15+15i; mui(2)=-15-15i; mui(3)=-0.5+0.5i ;mui(4)=-0.5-0.5i;mui(5)=-1;%este ultimo polo es el integrador
+mui(1)=-15+15i; mui(2)=-15-15i; mui(3)=-0.5+0.5i ;mui(4)=-0.5-0.5i;mui(5)=-.1;%este ultimo polo es el integrador
 alfa_ia=conv(conv(conv(conv([1 -mui(3)],[1 -mui(4)]),[1 -mui(2)]),[1 -mui(1)]),[1 -mui(5)]);
-Ka=(alfa_ia(2:6)-c_ai(2:6))*inv(Mat_Ta);
+Ka=fliplr(alfa_ia(2:6)-c_ai(2:6))*inv(Mat_Ta);
 eig(Mat_Aa-Mat_Ba*Ka);
 K=Ka(1:4); KI=-Ka(5); %Los valores del controlador de obtienen del K ampliado
 
@@ -73,8 +73,8 @@ Mat_B_O=Mat_C';
 Mat_M_Dual=[Mat_B_O Mat_A_O*Mat_B_O Mat_A_O^2*Mat_B_O Mat_A_O^3*Mat_B_O];%Matriz Controlabilidad
 
 % Ubicación del Observador dado por consigna
-mui_o(1)=-50; mui_o(2)=-30; mui_o(3)=-1+i ;mui_o(4)=-1-i;%mui_o(5)=-1;%este ultimo polo es el integrador
-mui_o=real(mui_o);
+mui_o(1)=-50; mui_o(2)=-30; mui_o(3)=-1+1i ;mui_o(4)=-1-1i;%mui_o(5)=-1;%este ultimo polo es el integrador
+mui_o=real(mui_o);%VER SI PONGO SOLO LA PARTE REAL O NO
 alfaO_i=conv(conv(conv([1 -mui_o(3)],[1 -mui_o(4)]),[1 -mui_o(2)]),[1 -mui_o(1)]);
 Mat_T_O=Mat_M_Dual*Mat_W;
 Ko=(fliplr(alfaO_i(2:end)-c_ai(2:end-1))*inv(Mat_T_O))';
@@ -88,43 +88,28 @@ for i=2:1:(ts/delta_t-1)
     psi_p=ref-Mat_C*estado;
     psi(i)=psi(i-1)+psi_p*delta_t;
     
-    uo(i-1)=-Ko'*x_hat+KI*psi(i);%con observador
-    u(i-1)=-K*estado+KI*psi(i);%sin observador
+%     u(i-1)=-K*x_hat+KI*psi(i);color='g';%con observador
+    u(i-1)=-K*estado+KI*psi(i);color='r';%sin observador
 
     val(1,i)=val(1,i-1)+delta_t*(a*val(2,i-1)-a*val(1,i-1));
     val(2,i)=val(2,i-1)+delta_t*(val(3,i-1));
     val(3,i)=val(3,i-1)+delta_t*(-w^2*(val(2,i-1)-val(1,i-1)-b*u(i-1)));
     val(4,i)=val(4,i-1)+delta_t*(c*val(1,i-1));
     %planteo las ecuaciones para el observador
-    val_o(1,i)=val_o(1,i-1)+delta_t*(a*val_o(2,i-1)-a*val_o(1,i-1));
-    val_o(2,i)=val_o(2,i-1)+delta_t*(val_o(3,i-1));
-    val_o(3,i)=val_o(3,i-1)+delta_t*(-w^2*(val_o(2,i-1)-val_o(1,i-1)-b*uo(i-1)));
-    val_o(4,i)=val_o(4,i-1)+delta_t*(c*val_o(1,i-1));
-    %________OBSERVADOR__________
+
+     %________OBSERVADOR__________
     y_sal_O(i-1)=Mat_C*x_hat;
     y_sal(i-1)=Mat_C*estado;
     x_hatp=Mat_A*x_hat+Mat_B*u(i-1)+Ko*(y_sal(i-1)-y_sal_O(i-1));
     x_hat=x_hat+delta_t*x_hatp;
 end
-figure
-plot(t,val(4,:),'r');grid on;title('Altura,h');hold on;
-plot(t,val_o(4,:),'g');grid on;hold on;
+figure(1)
+plot(t,val(4,:),color);grid on;title('Altura,h');hold on;
+% plot(t,val_o(4,:),'g');grid on;hold on;
 
-figure
-plot(t,val(1,:),'r');grid on;title('Alpha');hold on;
-plot(t,val_o(1,:),'g');grid on;hold on;
-figure
-plot(t,val(2,:),'r');grid on;title('phi');hold on;
-plot(t,val_o(2,:),'g');grid on;hold on;
-% figure(1);hold on; t=0:delta_t:(ts-delta_t);
-% subplot(2,2,1);plot(t,val(4,:),color);grid on; title('Altura h');hold on;
-% legend('Sin Observador','Con Observador');legend('boxoff');
-% subplot(2,2,2);plot(t,val(1,:),color);grid on;title('Ángulo Alpha');hold on;
-% subplot(2,2,3); plot(t,val(2,:),color);grid on;title('Angulo Phi');hold on;
-% 
-% subplot(2,2,4);plot(t,u(i-1),color);grid on;title('Acción de control');xlabel('Tiempo en Seg.');hold on;
-% figure(2);hold on;
-% subplot(2,2,1);plot(alfa,omega,color);grid on;xlabel('Ángulo');ylabel('Velocidad 
-% angular');hold on;
-% subplot(2,2,2);plot(p,p_p,color);grid on;xlabel('Posicion carro');ylabel('Velocidad 
-% carro');hold on;legend('Sin Observador','Con Observador');legend('boxoff');
+figure(2)
+plot(t,val(1,:),color);grid on;title('Alpha');hold on;
+% plot(t,val_o(1,:),'g');grid on;hold on;
+figure(3)
+plot(t,val(2,:),color);grid on;title('phi');hold on;
+% plot(t,val_o(2,:),'g');grid on;hold on;
