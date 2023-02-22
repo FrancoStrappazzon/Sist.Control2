@@ -84,9 +84,14 @@ for ki=2:KMAX+1
  ve1_o(ki)=ve1(ki-1)+ref1-y_hat(1);
  ve2_o(ki)=ve2(ki-1)+ref2-y_hat(2);
  
-%  u1(ki)=-Ka*[x;ve1(ki);ve2(ki)];color='r';%sin observado
- u1(ki)=-Ka*[x_hat;ve1_o(ki);ve2_o(ki)];color='g';%para el observado
+ u1(ki)=-Ka*[x;ve1(ki);ve2(ki)];color='r';%sin observado
+%  u1(ki)=-Ka*[x_hat;ve1_o(ki);ve2_o(ki)];color='g';%para el observado
 
+ %Agrego la alinealidad de la zona muerta de 15 
+ if abs(u1(ki))<15
+    u1(ki)=0;
+ end
+ 
   if(ki==((KMAX+1)/2))%Cambio la masa
      m=1*m;
      ref1=0;
