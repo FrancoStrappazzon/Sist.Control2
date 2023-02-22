@@ -1,8 +1,8 @@
 clc;clear all;close all;
 m=.1;Fricc=0.1; long=2.6;g=9.8;M=.5;
 %TIEMPOS: de muestreo, de simulación, de Euler y su integración
-Ts=0.01;KMAX=2000-1;Veces_Euler=100;h=1e-4;
-
+Ts=0.01;KMAX=2000-1;Veces_Euler=100;h=1e-4;t_d=(0:KMAX)*Ts;
+colorc='b';
 %referencias para posicion y angulo
 ref1=10;ref2=0;
 
@@ -60,7 +60,7 @@ u=[];
 y=Mat_C*x;ve1(1)=0;ve2(1)=0;phi_(1)=phi(1);
 Jn=0;V_NL=[x;0;0]'*Pc*[x;0;0];Jmin_NL=V_NL;i=1;
 for ki=2:KMAX+1
- V_NL=[V_NL [x;ve1(ki-1);ve2(ki-1)]'*Pc*[x;ve1(ki-1);ve2(ki-1)]];
+ V_NL=[V_NL [x;ve1(ki-1);ve2(ki-1)]'*Pc*[x;ve1(ki-1);ve2(ki-1)]];%funcion de Liapunov
  Y_=Mat_C*x;
  ve1(ki)=ve1(ki-1)+ref1-Y_(1);
  ve2(ki)=ve2(ki-1)+ref2-Y_(2);%No es necesario. Ya que no es Observable.
@@ -82,7 +82,7 @@ for ki=2:KMAX+1
  i=i+1;
  end
  x=[delta(i-1); delta_p(i-1); phi(i-1); phi_p(i-1)]; %Acá está x(k+1)
- Jn=[Jn Jn(ki-1)+[x;ve1(ki);ve2(ki)]'*Qc*[x;ve1(ki);ve2(ki)]+u1(ki)'*R*u1(ki)];
+ Jn=[Jn Jn(ki-1)+[x;ve1(ki);ve2(ki)]'*Qc*[x;ve1(ki);ve2(ki)]+u1(ki)'*R*u1(ki)];%incremental de costos
 end
 u(i)=u1(ki);t=(1:i)*h;
 figure(1);hold on;
@@ -98,3 +98,10 @@ ylabel('\phi_p');hold on;
 subplot(2,2,2);plot(delta,delta_p,color);grid on;xlabel('Posición carro');hold on;
 xlabel('\delta_t');hold on;
 ylabel('\delta_p');hold on;
+
+subplot(2,2,3);
+semilogy(t_d,Jn,colorc);grid on;title('Modelo no lineal');
+xlabel('Tiempo en Seg.');ylabel('Funcionales J y V');hold on;
+semilogy(t_d,Jmin_NL*ones(size(Jn)),colorc);
+semilogy(t_d,V_NL,colorc);
+set(gca,'fontsize');
