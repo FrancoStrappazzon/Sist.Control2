@@ -1,0 +1,104 @@
+clear all;close all;clc
+%Constantes
+w=9;
+a=0.07;
+b=5;
+c=150; %m/seg
+delta_t=1e-3;
+ts=70;
+% u=0;
+Ts=1;KMAX=70;T=Ts*KMAX;
+
+ref=-100;%referencia
+
+alpha_0=0;
+fi_0=0;
+fip_0=0;
+h_0=500;%altura inicial
+
+
+t=0:delta_t:(ts-delta_t);
+val=zeros(4,ts/delta_t);
+val(1,1)=alpha_0;
+val(2,1)=fi_0;
+val(3,1)=fip_0;
+val(4,1)=h_0;
+
+%matrices
+Mat_A=[-a a 0 0 ; 0 0 1 0; w^2 -(w^2) 0 0; c 0 0 0];
+Mat_B=[0;0;b*w^2;0];
+Mat_C=[0 0 0 1];
+MAT_D=0;
+[n,d]=ss2tf(Mat_A,Mat_B,Mat_C,MAT_D)
+
+%paso al sistema discreto
+H=[0;0;0;0];d_tao=Ts/100;tao=0;
+for hh=1:100
+ dH=expm(Mat_A*tao)*Mat_B*d_tao;
+ H=H+dH;
+ tao=tao+d_tao;
+end
+Mat_B=H;
+Mat_A=expm(Mat_A*Ts);
+
+% Construcción del sistema ampliado
+Mat_Aa=[Mat_A zeros(4,1);-Mat_C 0];
+Mat_Ba=[Mat_B;0];
+Mat_Ma=[Mat_Ba Mat_Aa*Mat_Ba Mat_Aa^2*Mat_Ba Mat_Aa^3*Mat_Ba Mat_Aa^4*Mat_Ba];%Matriz de Controlabilidad
+
+%Cálculo del controlador por asignación de polos
+auto_val=eig(Mat_Aa);
+c_ai=conv(conv(conv(conv([1 -auto_val(1)],[1 -auto_val(2)]),[1 -auto_val(3)]),[1 -auto_val(4)]),[1 -auto_val(5)]);
+Mat_Wa=[;c_ai(5) c_ai(4) c_ai(3) c_ai(2) 1;c_ai(4) c_ai(3) c_ai(2) 1 0;c_ai(3) c_ai(2) 1 0 0;c_ai(2) 1 0 0 0;1 0 0 0 0];
+Mat_Ta=Mat_Ma*Mat_Wa;
+A_controlable=inv(Mat_Ta)*Mat_Aa*Mat_Ta; %Verificación de que T esté bien
+
+%Ubicación de los polos de lazo cerrado en mui:
+mui(1)=-.4+.4i; mui(2)=-.4-.4i; mui(3)=-0.05+0.05i ;mui(4)=-0.05-0.05i;mui(5)=.8;%este ultimo polo es el integrador
+alfa_ia=conv(conv(conv(conv([1 -mui(3)],[1 -mui(4)]),[1 -mui(2)]),[1 -mui(1)]),[1 -mui(5)]);
+Ka=fliplr(alfa_ia(2:6)-c_ai(2:6))*inv(Mat_Ta);
+eig(Mat_Aa-Mat_Ba*Ka);
+abs(eig(Mat_Aa-Mat_Ba*Ka));
+K=Ka(1:4); KI=-Ka(5); %Los valores del controlador de obtienen del K ampliado
+
+psi(1)=0;
+estado=[0;0;0;h_0];
+u=[];i=1;
+u_k(1)=0;
+ki=1;
+ve(1)=0;
+
+for ki=1:KMAX
+    
+    estado=[val(1,i); val(2,i); val(3,i); val(4,i)];
+    psi_p=ref-Mat_C*estado;
+    psi(ki+1)=psi(ki)+psi_p*delta_t;
+%     ve(ki+1)=ve(ki)+ref-Mat_C*estado;
+    u1(ki)=-1*K*estado-KI*psi(ki+1);
+%      u1(ki)=-K*estado+KI*ve(ki);
+%      ys=Mat_C*estado;%Acá se mide la salida.
+
+     
+ for kii=1:Ts/delta_t
+     u(i)=u1(ki);
+     
+     val(1,i+1)=val(1,i)+delta_t*(a*val(2,i)-a*val(1,i));
+     val(2,i+1)=val(2,i)+delta_t*(val(3,i));
+     val(3,i+1)=val(3,i)+delta_t*(-w^2*(val(2,i)-val(1,i)-b*u(i)));
+     val(4,i+1)=val(4,i)+delta_t*(c*val(1,i));
+     
+%      estado=[val(1,i); val(2,i); val(3,i); val(4,i)];
+     i=i+1;
+ end
+end
+u(i)=u1(ki);t=0:delta_t:T;
+
+figure
+plot(t,val(4,:));title('Altura,h');
+figure
+plot(t,val(1,:));title('Alpha')
+figure
+plot(t,val(2,:));title('phi');
+figure 
+plot(t,u);title('Accion de control');
+
