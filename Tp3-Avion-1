@@ -1,3 +1,4 @@
+%SIN OBSERVADOR - ANDA PERO OSCILA UN POCO EL ANGULO
 clear all;close all;clc
 %Constantes
 w=9;
@@ -6,15 +7,15 @@ b=5;
 c=150; %m/seg
 delta_t=1e-3;
 ts=70;
-% u=0;
+u=0;
 Ts=1;KMAX=70;T=Ts*KMAX;
 
-ref=-100;%referencia
+ref=100;%referencia
 
 alpha_0=0;
 fi_0=0;
 fip_0=0;
-h_0=500;%altura inicial
+h_0=-500;%altura inicial
 
 
 t=0:delta_t:(ts-delta_t);
@@ -54,7 +55,7 @@ Mat_Ta=Mat_Ma*Mat_Wa;
 A_controlable=inv(Mat_Ta)*Mat_Aa*Mat_Ta; %Verificación de que T esté bien
 
 %Ubicación de los polos de lazo cerrado en mui:
-mui(1)=-.4+.4i; mui(2)=-.4-.4i; mui(3)=-0.05+0.05i ;mui(4)=-0.05-0.05i;mui(5)=.8;%este ultimo polo es el integrador
+mui(1)=-.15+.15i; mui(2)=-.15-.15i; mui(3)=-0.05+0.05i ;mui(4)=-0.05-0.05i;mui(5)=.89;%este ultimo polo es el integrador
 alfa_ia=conv(conv(conv(conv([1 -mui(3)],[1 -mui(4)]),[1 -mui(2)]),[1 -mui(1)]),[1 -mui(5)]);
 Ka=fliplr(alfa_ia(2:6)-c_ai(2:6))*inv(Mat_Ta);
 eig(Mat_Aa-Mat_Ba*Ka);
@@ -74,11 +75,9 @@ for ki=1:KMAX
     psi_p=ref-Mat_C*estado;
     psi(ki+1)=psi(ki)+psi_p*delta_t;
 %     ve(ki+1)=ve(ki)+ref-Mat_C*estado;
-    u1(ki)=-1*K*estado-KI*psi(ki+1);
+    u1(ki)=-.4*K*estado-1500*KI*psi(ki+1);
 %      u1(ki)=-K*estado+KI*ve(ki);
-%      ys=Mat_C*estado;%Acá se mide la salida.
-
-     
+%      ys=Mat_C*estado;%Acá se mide la salida. 
  for kii=1:Ts/delta_t
      u(i)=u1(ki);
      
@@ -101,4 +100,3 @@ figure
 plot(t,val(2,:));title('phi');
 figure 
 plot(t,u);title('Accion de control');
-
