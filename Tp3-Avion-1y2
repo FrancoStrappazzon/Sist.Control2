@@ -154,6 +154,11 @@ for ki=2:KMAX
  
 %  u=-Ka*[x_hat;ve1(ki);ve2(ki)];color='g';%con observador
  u=-Ka*[x;ve1(ki);ve2(ki)];color='r';%con observador
+
+%Agrego la no linealidad de la zona muerta de 0.1 
+ if abs(u)<0.1
+    u=0;
+ end
  
  ys=Mat_C*x; %Se mide ACÁ
  x=Mat_A*x+Mat_B*u;
